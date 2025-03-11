@@ -1,4 +1,8 @@
-v0.04 [PROPER PLAYER LOCATION UPDATES] []
+v0.0.5 [GAME OVER][]
+
+[] - 
+
+v0.0.4 [PROPER PLAYER LOCATION UPDATES] []
 
 [] - Updating player position by cursor and not display refresh to be more efficient
 [] - Check the value in the new position of the character

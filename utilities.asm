@@ -55,9 +55,6 @@ update_p_up:
 	# Store the new player location
 	addi $t0, $t0, -7
 	sb $t0, playerLocation
-	blt $t0, 0, game_over
-	bgt $t0, 49, game_over
-	
 	# Move to new player location and make it 'P'
 	addi $t1, $t1, -7
 	lb $t2, player
@@ -78,8 +75,6 @@ update_p_left:
 	# Store the new player location
 	addi $t0, $t0, -1
 	sb $t0, playerLocation
-	blt $t0, 0, game_over
-	bgt $t0, 49, game_over
 	
 	# Move to new player location and make it 'P'
 	addi $t1, $t1, -1
@@ -103,8 +98,6 @@ update_p_down:
 	# Store the new player location
 	addi $t0, $t0, 7
 	sb $t0, playerLocation
-	blt $t0, 0, game_over
-	bgt $t0, 49, game_over
 	
 	# Move to new player location and make it 'P'
 	addi $t1, $t1, 7
@@ -126,8 +119,6 @@ update_p_right:
 	# Store the new player location
 	addi $t0, $t0, 1
 	sb $t0, playerLocation
-	blt $t0, 0, game_over
-	bgt $t0, 49, game_over
 	
 	# Move to new player location and make it 'P'
 	addi $t1, $t1, 1
