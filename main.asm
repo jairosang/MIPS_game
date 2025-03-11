@@ -4,10 +4,10 @@
 .text
 jal INIT_UTILITIES_ADDRS
 
-main:
+
 	
 	jal INIT_DISPLAY
-	
+main:	
 input_loop:
 	jal GET_KEYBOARD
 	beq $v0, 119, move_p_up

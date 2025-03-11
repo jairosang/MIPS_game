@@ -1,4 +1,5 @@
 # https://wilkinsonj.people.charleston.edu/mmio.html
+# https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 # https://www.ascii-code.com
 
 # RESERVED $s0, $s1 FOR DISPLAY
@@ -9,6 +10,11 @@
 	DISPLAY_ADDR: .word 0xFFFF000C  # Display address
 	KEYBOARD_STATUS: .word 0xFFFF0000  # Address to check IF a key is pressed
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
+	
+	CURSOR_UP: 
+	CURSOR_DOWN: 
+	CURSOR_LEFT:
+	CURSOR_RIGHT:
 	
 	scoreLabel: .asciiz "    Score:"
 	score: .byte '0'
@@ -40,91 +46,89 @@ increase_score:
 	jr $ra
 	
 	
+# CURSOR FUNCTIONS
+#=============================================================================================================================================================================================
+reset_cursor:
+
+cursor_up:
+
+cursor_left:
+	
+cursor_down:
+
+cursor_right:	
+
+
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
-update_p_up:
+update_grid:
 	# Load player location and board address
 	lb $t0, playerLocation
 	la $t1, board
-	
-	# Move to board's player location address and make it blank
+
+	# Clear grid location
 	add $t1, $t1, $t0
 	li $t2, 32
 	sb $t2, ($t1)
 	
-	# Store the new player location
-	addi $t0, $t0, -7
+	# Update player location variable
+	add $t0, $t0, $t3
 	sb $t0, playerLocation
+	
 	# Move to new player location and make it 'P'
-	addi $t1, $t1, -7
+	add $t1, $t1, $t3
 	lb $t2, player
 	sb $t2, ($t1)
 	
+	jr $ra
+
+update_p_up:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	# Load direction number
+	li $t3, -7 
+	jal update_grid
+
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 
 update_p_left:
-	# Load player location and board address
-	lb $t0, playerLocation
-	la $t1, board
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 	
-	# Move to board's player location address and make it blank
-	add $t1, $t1, $t0
-	li $t2, 32
-	sb $t2, ($t1)
+	# Load direction number
+	li $t3, -1
+	jal update_grid
 	
-	# Store the new player location
-	addi $t0, $t0, -1
-	sb $t0, playerLocation
-	
-	# Move to new player location and make it 'P'
-	addi $t1, $t1, -1
-	lb $t2, player
-	sb $t2, ($t1)
-	
-	
-	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 
-update_p_down:	
-	# Load player location and board address
-	lb $t0, playerLocation
-	la $t1, board
+update_p_down:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+		
+	# Load direction number
+	li $t3, 7
+	jal update_grid
 	
-	# Move to board's player location address and make it blank
-	add $t1, $t1, $t0
-	li $t2, 32
-	sb $t2, ($t1)
-	
-	# Store the new player location
-	addi $t0, $t0, 7
-	sb $t0, playerLocation
-	
-	# Move to new player location and make it 'P'
-	addi $t1, $t1, 7
-	lb $t2, player
-	sb $t2, ($t1)
-	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 update_p_right:
-	# Load player location and board address
-	lb $t0, playerLocation
-	la $t1, board
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 	
-	# Move to board's player location address and make it blank
-	add $t1, $t1, $t0
-	li  $t2, 32
-	sb $t2, ($t1)
+	# Load direction number
+	li $t3, 1
+	jal update_grid
 	
-	# Store the new player location
-	addi $t0, $t0, 1
-	sb $t0, playerLocation
-	
-	# Move to new player location and make it 'P'
-	addi $t1, $t1, 1
-	lb $t2, player
-	sb $t2, ($t1)
 		
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 game_over:

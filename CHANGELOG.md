@@ -4,9 +4,11 @@ v0.0.5 [GAME OVER][]
 
 v0.0.4 [PROPER PLAYER LOCATION UPDATES] []
 
+Figured out ANSI escape codes
+
 [] - Updating player position by cursor and not display refresh to be more efficient
 [] - Check the value in the new position of the character
-[] - Clear screen and display game over if value in new cursor location is hash
+[] - Clear screen and display game over if value in new cursor location is hash sign
 
 
 
