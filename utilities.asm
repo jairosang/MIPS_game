@@ -11,19 +11,17 @@
 	KEYBOARD_STATUS: .word 0xFFFF0000  # Address to check IF a key is pressed
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
 	
-	CURSOR_UP: 
-	CURSOR_DOWN: 
-	CURSOR_LEFT:
-	CURSOR_RIGHT:
-	
-	scoreLabel: .asciiz "    Score:"
+	scoreLabel: .asciiz "Score:"
 	score: .byte '0'
 	border: .byte '#'
 	space: .byte ' '
 	player: .byte 'P'
 	reward: .byte 'R'
-	board: .asciiz "P                                                "
-	playerLocation: .byte 0
+	
+	boardWidth: .byte 15
+	boardHeight: .byte 6
+	playerX: .byte 0
+	playerY: .byte 0
 	
 .text 
 .globl INIT_UTILITIES_ADDRS, INIT_DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right
@@ -62,33 +60,13 @@ cursor_right:
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
 update_grid:
-	# Load player location and board address
-	lb $t0, playerLocation
-	la $t1, board
 
-	# Clear grid location
-	add $t1, $t1, $t0
-	li $t2, 32
-	sb $t2, ($t1)
-	
-	# Update player location variable
-	add $t0, $t0, $t3
-	sb $t0, playerLocation
-	
-	# Move to new player location and make it 'P'
-	add $t1, $t1, $t3
-	lb $t2, player
-	sb $t2, ($t1)
-	
-	jr $ra
 
 update_p_up:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
-	# Load direction number
-	li $t3, -7 
-	jal update_grid
+
 
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -98,9 +76,6 @@ update_p_left:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
-	# Load direction number
-	li $t3, -1
-	jal update_grid
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -110,9 +85,6 @@ update_p_down:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 		
-	# Load direction number
-	li $t3, 7
-	jal update_grid
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -122,10 +94,7 @@ update_p_right:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
-	# Load direction number
-	li $t3, 1
-	jal update_grid
-	
+
 		
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -188,9 +157,24 @@ display_border:
 
 # Loops to display the word "Score: "
 display_score:
-	la $t1, scoreLabel			# Load the address of string into $t1
 	addi $sp, $sp, -4
 	sw  $ra, 4($sp)
+
+	lb $t2, boardWidth
+	div $t2, $t2, 2
+	addi $t2, $t2, -2
+	
+loop_space_display_score:
+	jal print_space
+	
+	beqz $t2, exit_loop_space_display_score
+	addi $t2, $t2, -1
+	
+	j loop_space_display_score
+	
+exit_loop_space_display_score:
+	la $t1, scoreLabel			# Load the address of string into $t1
+	
 loop_display_score:
 	lb $a0, ($t1)				# Stores the according letter value in $a0
 	beq $a0, $zero, exit_display_score	#If the value is null, the word ended 
@@ -213,16 +197,19 @@ exit_display_score:
 	
 # Displays the top or bottom line of border
 display_top_border:
-	li $t1, 17	# Load counter in t1
-	
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
+
+	lb $t1, boardWidth	# Load counter in t1
+	addi $t1, $t1, 2 	# Account for extra side borders
+	
+
 loop_display_top_border:
+	
+	jal display_border
 	
 	beqz $t1, exit_loop_display_top_border
 	addi $t1, $t1, -1
-	
-	jal display_border
 
 	j loop_display_top_border
 	
@@ -232,29 +219,23 @@ exit_loop_display_top_border:
 	jr $ra
 	
 # Initializes the board display to display from beginning
-init_display_board:
-	la $s7, board	# Load address of board
-display_board:
-	li $t9, 1	# Starts a counter to keep track of characters printed
+display_board_line:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
+
+	lb $t1, boardWidth	# Load counter in t1
 	
 loop_display_board_line:
+	
 	jal print_space
-	lb $a0, ($s7)		# Stores the according letter value in $a0
-	seq $t1, $t9, 7		# If the value is null, the word ended 
-	jal dspl_check_and_print
 	
-	# Goes to next character in array
-	addi $s7, $s7, 1
-	addi $t9, $t9, 1
-	
-	bne  $t1, 0, exit_display_board_line	
-	
+	beqz $t1, exit_display_board_line
+	addi $t1, $t1, -1
+
 	j loop_display_board_line
 	
+	
 exit_display_board_line:
-	jal print_space
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -274,22 +255,16 @@ INIT_DISPLAY:
 	jal display_top_border
 	jal print_new_line
 	
+	lb $t2, boardHeight
+dspl_loop:
+	
 	jal display_border
-	jal init_display_board
+	jal display_board_line
 	jal display_border
 	jal print_new_line
-	
-	li $t2, 6
-dspl_loop:
 	
 	beqz $t2, exit_dspl_loop
 	addi $t2, $t2, -1
-	
-	jal display_border
-	jal display_board
-	jal display_border
-	jal print_new_line
-	
 	j dspl_loop
 	
 exit_dspl_loop:

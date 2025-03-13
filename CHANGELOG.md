@@ -4,7 +4,9 @@ v0.0.5 [GAME OVER][]
 
 v0.0.4 [PROPER PLAYER LOCATION UPDATES] []
 
-Figured out ANSI escape codes
+1.Figured out ANSI escape codes
+2.Figured out ANSI escape codes do not work in MIPS MMIO
+3.Figured out cursor location can be controlled with (x,y) values 
 
 [] - Updating player position by cursor and not display refresh to be more efficient
 [] - Check the value in the new position of the character
