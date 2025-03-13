@@ -1,12 +1,18 @@
 # Imported functions:
-# INIT_UTILITIES_ADDRS, INIT_DISPLAY, GET_KEYBOARD, dspl_check_and_print
-# update_p_up, update_p_left, update_p_down, update_p_right
+# INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print
+# update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
 .text
 jal INIT_UTILITIES_ADDRS
 
 main:	
 	
-	jal INIT_DISPLAY
+	jal DISPLAY
+	jal INIT_CHARACTER
+	
+	li $v0, 10
+	syscall
+
+
 
 input_loop:
 	jal GET_KEYBOARD
@@ -14,6 +20,7 @@ input_loop:
 	beq $v0, 97, move_p_left
 	beq $v0, 115, move_p_down
 	beq $v0, 100, move_p_right
+	j input_loop
 	
 move_p_up:
 	jal update_p_up

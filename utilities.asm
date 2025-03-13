@@ -24,14 +24,20 @@
 	playerY: .byte 0
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
 INIT_UTILITIES_ADDRS:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+
 
 	lw $s0, DISPLAY_CTRL_R       # Copy the control register into a CPU register.
-	lw $s1, DISPLAY_ADDR	# Load the address of the display into $t0
+	lw $s1, DISPLAY_ADDR	# Load the address of the display into $s1
 	lw $s2, KEYBOARD_STATUS
 	lw $s3, KEYBOARD_DATA
 	
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 # DATA FUNCTIONS
@@ -43,25 +49,77 @@ increase_score:
 
 	jr $ra
 	
-	
 # CURSOR FUNCTIONS
 #=============================================================================================================================================================================================
-reset_cursor:
-
-cursor_up:
-
-cursor_left:
+cursor_go_to:
+	# Args a0 = X axis, a1 = Y axis
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 	
-cursor_down:
+	
+	sll $a0, $a0, 12
+	andi $a1, $a1, 0xFFF
+	or $a0, $a0, $a1
 
-cursor_right:	
+	sll $a0, $a0, 8
+	
+	ori $a0, $a0, 7
+	
+cursor_check:
 
+	lw $t0, 0($s0)
+        andi $t0, $t0, 1       
+        
+        beq $t0, $zero, cursor_check
+        
+        sw $a0, 0($s1)
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
 
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
-update_grid:
+INIT_CHARACTER:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 
-
+	la $t0, playerX
+	la $t1, playerY
+	
+	# Generate random number between 0 and width of board
+	lb $a0, boardWidth	
+	addi $a0, $a0, -1
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 1	# Store player X and account for border
+	sb $a0, ($t0)
+	
+	# Generate random number between 0 and height of board
+	lb $a0, boardHeight	
+	addi $a0, $a0, -1
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 2	# Store player Y and account for border
+	sb $a0, ($t1)
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Locate the player in random location
+	jal cursor_go_to
+	
+	lb $a0, player
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
 update_p_up:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -122,9 +180,13 @@ print_new_line:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 
-	li $a0, 10	# Print newline
-	jal dspl_check_and_print
-		
+	# Increase the current line by one
+	addi $t3, $t3, 1
+	
+	li $a0, 0		# Load X value to 0
+	add $a1, $t3, $zero	# Load Y to next line
+	jal cursor_go_to
+	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -242,13 +304,17 @@ exit_display_board_line:
 	
 	
 # MAIN DISPLAY FUNCTION
-INIT_DISPLAY:
+DISPLAY:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
-	li $a0, 12
+	# Reset cursor to 0,0
+	li $a0, 7
 	jal dspl_check_and_print
 	
+	# Init current line to 0
+	li $t3, 0
+		
 	jal display_score
 	jal print_new_line
 	
@@ -291,7 +357,6 @@ keyboard_check_and_get:
 	
 	lw $v0, 0($s3) # GET CHARACTER
 	jr $ra
-
 
 
 
