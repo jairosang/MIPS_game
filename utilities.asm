@@ -120,11 +120,46 @@ INIT_CHARACTER:
 	addi $sp, $sp, 4
 	jr $ra
 	
+clear_player_space:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Locate the player in random location
+	jal cursor_go_to
+	
+	# Remove player from location
+	lb $a0, space
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
 update_p_up:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
-
+	jal clear_player_space
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Update player Y axis to -1 
+	addi $a1, $a1, -1
+	sb $a1, playerY
+	
+	# Go to player new location
+	jal cursor_go_to
+	
+	# Print player
+	lb $a0, player
+	jal dspl_check_and_print
+	
 
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -134,7 +169,24 @@ update_p_left:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
+	jal clear_player_space
 	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Update player X axis to -1 
+	addi $a0, $a0, -1
+	sb $a0, playerX
+	
+	# Go to player new location
+	jal cursor_go_to
+	
+	# Print player
+	lb $a0, player
+	jal dspl_check_and_print
+	
+
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -142,8 +194,25 @@ update_p_left:
 update_p_down:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
-		
 	
+	jal clear_player_space
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Update player Y axis to +1 
+	addi $a1, $a1, 1
+	sb $a1, playerY
+	
+	# Go to player new location
+	jal cursor_go_to
+	
+	# Print player
+	lb $a0, player
+	jal dspl_check_and_print
+	
+
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -152,8 +221,24 @@ update_p_right:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
+	jal clear_player_space
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, playerX
+	lb $a1, playerY
+	
+	# Update player X axis to +1 
+	addi $a0, $a0, 1
+	sb $a0, playerX
+	
+	# Go to player new location
+	jal cursor_go_to
+	
+	# Print player
+	lb $a0, player
+	jal dspl_check_and_print
+	
 
-		
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra

@@ -9,10 +9,6 @@ main:
 	jal DISPLAY
 	jal INIT_CHARACTER
 	
-	li $v0, 10
-	syscall
-
-
 
 input_loop:
 	jal GET_KEYBOARD
@@ -24,17 +20,17 @@ input_loop:
 	
 move_p_up:
 	jal update_p_up
-	j main
+	j input_loop
 	
 move_p_left:
 	jal update_p_left
-	j main
+	j input_loop
 
 move_p_down:
 	jal update_p_down
-	j main
+	j input_loop
 
 move_p_right:
 	jal update_p_right
-	j main
+	j input_loop
 	
