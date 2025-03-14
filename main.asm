@@ -1,6 +1,11 @@
-# Imported functions:
-# INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print
-# update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+# Imported initializers:
+# INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY,
+
+# Imported get and print functions: GET_KEYBOARD, dspl_check_and_print
+# Imported functions: update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+
+# Imported checks: 
+# collission_player_border
 .text
 jal INIT_UTILITIES_ADDRS
 
@@ -11,6 +16,7 @@ main:
 	
 
 input_loop:
+	jal collission_player_border
 	jal GET_KEYBOARD
 	beq $v0, 119, move_p_up
 	beq $v0, 97, move_p_left

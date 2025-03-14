@@ -6,11 +6,13 @@
 # RESERVED $s2, $s3 FOR KEYBOARD
 # RESERVED $s7 FOR ARRAY DISPLAY
 .data
+	# Constants
 	DISPLAY_CTRL_R: .word 0xFFFF0008 #Display control register
 	DISPLAY_ADDR: .word 0xFFFF000C  # Display address
 	KEYBOARD_STATUS: .word 0xFFFF0000  # Address to check IF a key is pressed
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
 	
+	# Board elements
 	scoreLabel: .asciiz "Score:"
 	score: .byte '0'
 	border: .byte '#'
@@ -18,13 +20,17 @@
 	player: .byte 'P'
 	reward: .byte 'R'
 	
+	# Board info
 	boardWidth: .byte 15
 	boardHeight: .byte 6
 	playerX: .byte 0
 	playerY: .byte 0
 	
+	# Messages
+	gameOverMessage: .asciiz "Gamer Over ... You lost ... Womp Womp"
+	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -40,11 +46,62 @@ INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, 4
 	jr $ra
 	
+# GAME CONDITIONS
+#=============================================================================================================================================================================================
+game_won:
+
+game_over:
+	# Clear Screen
+	li $a0, 12
+	jal dspl_check_and_print
+	
+	jal display_score
+	
+	li $a0, 0
+	li $a1, 1
+	jal cursor_go_to
+	
+	
+	la $t1, gameOverMessage
+loop_game_over_msg:
+	lb $a0, 0($t1)
+	beqz $a0, exit_loop_game_over_msg
+	
+	jal dspl_check_and_print
+	
+	addi $t1, $t1, 1
+
+	j loop_game_over_msg
+	
+exit_loop_game_over_msg:	
+	li $v0, 10
+	syscall
+	
+	
+# COLLISION CHECKS
+#=============================================================================================================================================================================================
+collission_player_border:
+	lb $t0, playerX
+	lb $t1, playerY
+	lb $t2, boardWidth
+	lb $t3, boardHeight
+	
+	addi $t2, $t2, 1
+	addi $t3, $t3, 2
+	
+	bgt $t0, $t2, game_over
+	blt $t0, 1, game_over
+	bgt $t1, $t3, game_over
+	blt $t1, 2, game_over
+
+
+	jr $ra
+	
 # DATA FUNCTIONS
 #=============================================================================================================================================================================================
 increase_score:
 	lb $t0, score
-	addi $t0, $t0, 1
+	addi $t0, $t0, 5
 	sb $t0, score
 
 	jr $ra
@@ -103,7 +160,7 @@ INIT_CHARACTER:
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
-	addi $a0, $a0, 2	# Store player Y and account for border
+	addi $a0, $a0, 1	# Store player Y and account for border
 	sb $a0, ($t1)
 	
 	# Load the player coordinates for cursor positioning
@@ -242,9 +299,7 @@ update_p_right:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
-game_over:
-	jr $ra
+
 
 # DISPLAY FUNCTIONS
 #=============================================================================================================================================================================================
