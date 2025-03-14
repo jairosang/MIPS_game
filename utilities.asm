@@ -14,23 +14,26 @@
 	
 	# Board elements
 	scoreLabel: .asciiz "Score:"
-	score: .byte '0'
+	score: .byte 0
 	border: .byte '#'
 	space: .byte ' '
 	player: .byte 'P'
 	reward: .byte 'R'
 	
 	# Board info
-	boardWidth: .byte 15
+	boardWidth: .byte 50
 	boardHeight: .byte 6
 	playerX: .byte 0
 	playerY: .byte 0
+	rewardX: .byte 0
+	rewardY: .byte 0
 	
 	# Messages
 	gameOverMessage: .asciiz "Gamer Over ... You lost ... Womp Womp"
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border, collision_player_reward
+
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -48,6 +51,18 @@ INIT_UTILITIES_ADDRS:
 	
 # GAME CONDITIONS
 #=============================================================================================================================================================================================
+player_gets_reward:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	jal increase_score
+	jal update_score_displayed
+	jal INIT_REWARD
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+
 game_won:
 
 game_over:
@@ -94,9 +109,27 @@ collission_player_border:
 	bgt $t1, $t3, game_over
 	blt $t1, 2, game_over
 
+	jr $ra
 
+collision_player_reward:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	lb $t0, playerX
+	lb $t1, playerY
+	lb $t2, rewardX
+	lb $t3, rewardY
+	
+	bne $t0, $t2, exit_collision_player_reward
+	bne $t1, $t3, exit_collision_player_reward
+	j player_gets_reward
+	
+exit_collision_player_reward:
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
+		
 # DATA FUNCTIONS
 #=============================================================================================================================================================================================
 increase_score:
@@ -135,7 +168,47 @@ cursor_check:
 	addi $sp, $sp, 4
 	jr $ra
 	
+# REWARD FUNCTIONS
+#=============================================================================================================================================================================================
+INIT_REWARD:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 
+	la $t0, rewardX
+	la $t1, rewardY
+	
+	# Generate random number between 1 and width-2 of board (accounting for borders)
+	lb $a1, boardWidth	
+	addi $a1, $a1, -2  # Subtract 2 to account for both borders
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 1	# Add 1 to ensure reward spawns between borders (1 to width-2)
+	sb $a0, ($t0)
+	
+	# Generate random number between 2 and height-1 of board (accounting for borders and score)
+	lb $a1, boardHeight	
+	addi $a1, $a1, -4  # Subtract 4 to account for both borders
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 2	# Add 2 to account for score display and top border
+	sb $a0, ($t1)
+	
+	# Load the reward coordinates for cursor positioning
+	lb $a0, rewardX
+	lb $a1, rewardY
+	
+	# Locate the reward
+	jal cursor_go_to
+	
+	lb $a0, reward
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
 INIT_CHARACTER:
@@ -145,22 +218,22 @@ INIT_CHARACTER:
 	la $t0, playerX
 	la $t1, playerY
 	
-	# Generate random number between 0 and width of board
-	lb $a0, boardWidth	
-	addi $a0, $a0, -1
+	# Generate random number between 1 and width-2 of board (accounting for borders)
+	lb $a1, boardWidth	
+	addi $a1, $a1, -2  # Subtract 2 to account for both borders
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
-	addi $a0, $a0, 1	# Store player X and account for border
+	addi $a0, $a0, 1	# Add 1 to ensure player spawns between borders (1 to width-2)
 	sb $a0, ($t0)
 	
-	# Generate random number between 0 and height of board
-	lb $a0, boardHeight	
-	addi $a0, $a0, -1
+	# Generate random number between 2 and height-1 of board (accounting for borders and score)
+	lb $a1, boardHeight	
+	addi $a1, $a1, -4  # Subtract 4 to account for both borders
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
-	addi $a0, $a0, 1	# Store player Y and account for border
+	addi $a0, $a0, 2	# Add 2 to account for score display and top border
 	sb $a0, ($t1)
 	
 	# Load the player coordinates for cursor positioning
@@ -373,7 +446,6 @@ loop_space_display_score:
 	addi $t2, $t2, -1
 	
 	j loop_space_display_score
-	
 exit_loop_space_display_score:
 	la $t1, scoreLabel			# Load the address of string into $t1
 	
@@ -386,12 +458,9 @@ loop_display_score:
 	addi $t1, $t1, 1	
 	
 	j loop_display_score
-	
 exit_display_score:
 	# Display score number
-	lb $a0, score
-
-	jal dspl_check_and_print
+	jal update_score_displayed
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -414,7 +483,6 @@ loop_display_top_border:
 	addi $t1, $t1, -1
 
 	j loop_display_top_border
-	
 exit_loop_display_top_border:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -435,13 +503,43 @@ loop_display_board_line:
 	addi $t1, $t1, -1
 
 	j loop_display_board_line
-	
-	
 exit_display_board_line:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
 	
+	
+update_score_displayed:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	# Load coordinates of score number
+	lb $t0, boardWidth
+	div $t0, $t0, 2
+	addi $a0, $t0, 5
+	li $a1, 0
+	
+	# Go to score number coordinates
+	jal cursor_go_to
+	
+	# Calculate number in score for display
+	lb $t0, score
+	li $t1, 10
+	div $t0, $t1
+	
+	# Print first digit
+	mflo $a0
+	addi $a0, $a0, 48
+	jal dspl_check_and_print
+	
+	# Print second digit
+	mfhi $a0
+	addi $a0, $a0, 48
+	jal dspl_check_and_print
+
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
 	
 # MAIN DISPLAY FUNCTION
 DISPLAY:
@@ -482,8 +580,6 @@ exit_dspl_loop:
 	
 
 
-
-
 # KEYBOARD FUNCTIONS
 #============================================================================================================================================================================================
 # MAIN KEYBOARD FUNCTION
@@ -497,6 +593,3 @@ keyboard_check_and_get:
 	
 	lw $v0, 0($s3) # GET CHARACTER
 	jr $ra
-
-
-

@@ -1,21 +1,26 @@
-v0.0.5 [GAME OVER][]
+v0.0.5 [THE REWARD][]
 
-[] - 
+[X] - Add a reward variable with current reward position
+[X] - Create a randomly placed reward
+[X] - Check for player collision with reward
+[X] - Increase the score when collision is detected with reward
+[X] - Reallocate reward
+[] - Make sure reward cannot appear in the current player position
 
-v0.0.4 [PROPER PLAYER LOCATION UPDATES] []
+v0.0.4 [PROPER PLAYER LOCATION UPDATES] [X]
 
 1.Figured out ANSI escape codes
 2.Figured out ANSI escape codes do not work in MIPS MMIO
 3.Figured out cursor location can be controlled with (x,y) values 
+4.Removed array
 
-[] - Updating player position by cursor and not display refresh to be more efficient
-[] - Check the value in the new position of the character
-[] - Clear screen and display game over if value in new cursor location is hash sign
-
+[X] - Updating player position by cursor and not display refresh to be more efficient
+[X] - Add game over condition function
+[X] - Apply game over to border collision
 
 
 v0.0.3 [PROPER GRID ARRAY] []
-
+SKIPPED
 [] - Storing grid as a .space array instead of ASCII (now that I know the first bug was because of the ASCII values)
 [] - Creating a function to initialize the .space into the value of ' '
 
