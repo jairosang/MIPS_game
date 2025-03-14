@@ -5,7 +5,7 @@
 # Imported functions: update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
 
 # Imported checks: 
-# collission_player_border, collision_player_reward, game_won
+# collission_player_border, collission_player_reward, game_won
 .text
 jal INIT_UTILITIES_ADDRS
 jal DISPLAY
@@ -15,7 +15,7 @@ main:
 	jal INIT_REWARD
 	
 input_loop:
-	jal collission_player_border
+	jal collision_player_border
 	jal collision_player_reward
 	jal game_won
 	jal GET_KEYBOARD

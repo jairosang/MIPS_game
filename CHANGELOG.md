@@ -1,7 +1,6 @@
-v1.1.0 [Better randomness]
+v1.1.0 [Better randomness][X]
 
 [X] - Add generation seed changes based on player movements
-[X] - Add a minimum reward-player distance for reward generation
 
 v1.0.0 [FIRST FULL VERSION][X]
 

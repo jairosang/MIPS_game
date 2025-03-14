@@ -22,7 +22,7 @@
 	reward: .byte 'R'
 	
 	# Board info
-	boardWidth: .byte 10
+	boardWidth: .byte 15
 	boardHeight: .byte 6
 	
 	# Data 
@@ -34,7 +34,7 @@
 	
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border, collision_player_reward, game_won
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collision_player_border, collision_player_reward, game_won
 
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
@@ -46,11 +46,13 @@ INIT_UTILITIES_ADDRS:
 	lw $s2, KEYBOARD_STATUS		# Load the address of the keyboard control register.
 	lw $s3, KEYBOARD_DATA		# Load the address of the keyboard data register
 	
+	# Generate number for seed
 	lw $a1, rewardSeed
 	li $a0, 0
 	li $v0, 42
 	syscall
 	
+	# Set seed to number
 	sw $a0, rewardSeed
 	add $a1, $a0, $zero
 	li $a0, 0
@@ -111,7 +113,7 @@ game_won:
 	
 	jr $ra
 
-collission_player_border:
+collision_player_border:
 	lb $t0, playerX
 	lb $t1, playerY
 	lb $t2, boardWidth
@@ -489,7 +491,7 @@ display_score:
 
 	lb $t2, boardWidth
 	div $t2, $t2, 2
-	addi $t2, $t2, -2
+	addi $t2, $t2, -3
 	
 loop_space_display_score:
 	jal print_space
@@ -567,7 +569,7 @@ update_score_displayed:
 	# Load coordinates of score number
 	lb $t0, boardWidth
 	div $t0, $t0, 2
-	addi $a0, $t0, 6
+	addi $a0, $t0, 4
 	li $a1, 0
 	
 	# Go to score number coordinates
