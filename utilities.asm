@@ -13,6 +13,7 @@
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
 	
 	# Board elements
+	gameOverMessage: .asciiz "GAME OVER"
 	scoreLabel: .asciiz "Score:"
 	score: .byte 0
 	border: .byte '#'
@@ -21,29 +22,40 @@
 	reward: .byte 'R'
 	
 	# Board info
-	boardWidth: .byte 50
+	boardWidth: .byte 10
 	boardHeight: .byte 6
+	
+	# Data 
 	playerX: .byte 0
 	playerY: .byte 0
 	rewardX: .byte 0
 	rewardY: .byte 0
+	rewardSeed: .word 300
 	
-	# Messages
-	gameOverMessage: .asciiz "Gamer Over ... You lost ... Womp Womp"
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border, collision_player_reward
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collission_player_border, collision_player_reward, game_won
 
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 
 
-	lw $s0, DISPLAY_CTRL_R       # Copy the control register into a CPU register.
-	lw $s1, DISPLAY_ADDR	# Load the address of the display into $s1
-	lw $s2, KEYBOARD_STATUS
-	lw $s3, KEYBOARD_DATA
+	lw $s0, DISPLAY_CTRL_R       	# Load the address of the display control resgister.
+	lw $s1, DISPLAY_ADDR		# Load the address of the display data register
+	lw $s2, KEYBOARD_STATUS		# Load the address of the keyboard control register.
+	lw $s3, KEYBOARD_DATA		# Load the address of the keyboard data register
 	
+	lw $a1, rewardSeed
+	li $a0, 0
+	li $v0, 42
+	syscall
+	
+	sw $a0, rewardSeed
+	add $a1, $a0, $zero
+	li $a0, 0
+	li  $v0, 40
+	syscall
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -62,8 +74,6 @@ player_gets_reward:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-
-game_won:
 
 game_over:
 	# Clear Screen
@@ -93,8 +103,14 @@ exit_loop_game_over_msg:
 	syscall
 	
 	
-# COLLISION CHECKS
+# CHECK FUNCTIONS
 #=============================================================================================================================================================================================
+game_won:
+	lb $t0, score
+	beq $t0, 100, game_over
+	
+	jr $ra
+
 collission_player_border:
 	lb $t0, playerX
 	lb $t1, playerY
@@ -139,6 +155,17 @@ increase_score:
 
 	jr $ra
 	
+update_seed:
+# Args, a1: number to change seed by
+	li $a0, 0
+	lw $t0, rewardSeed
+	
+	add $a1, $a1, $t0
+	sw $a1, rewardSeed
+	li $v0, 40
+	
+	jr $ra
+	
 # CURSOR FUNCTIONS
 #=============================================================================================================================================================================================
 cursor_go_to:
@@ -173,22 +200,25 @@ cursor_check:
 INIT_REWARD:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
-
+	
+generate_reward:
 	la $t0, rewardX
 	la $t1, rewardY
 	
-	# Generate random number between 1 and width-2 of board (accounting for borders)
+	# Generate random X in board (accounting for borders)
 	lb $a1, boardWidth	
-	addi $a1, $a1, -2  # Subtract 2 to account for both borders
+	addi $a1, $a1, 1  # Add one to account for exclusivity
+	li $a0, 0
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
 	addi $a0, $a0, 1	# Add 1 to ensure reward spawns between borders (1 to width-2)
 	sb $a0, ($t0)
 	
-	# Generate random number between 2 and height-1 of board (accounting for borders and score)
+	# Generate random Y in board (accounting for borders and score)
 	lb $a1, boardHeight	
-	addi $a1, $a1, -4  # Subtract 4 to account for both borders
+	addi $a1, $a1, 1  # Add one to account for exclusivity
+	li $a0, 0
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
@@ -198,7 +228,15 @@ INIT_REWARD:
 	# Load the reward coordinates for cursor positioning
 	lb $a0, rewardX
 	lb $a1, rewardY
+	lb $t0, playerX
+	lb $t1, playerY
+
+	# Check if new reward is in the same position as player
+	bne $t0, $a0, exit_reward_generation
+	bne $t1, $a1, exit_reward_generation
+	j generate_reward
 	
+exit_reward_generation:
 	# Locate the reward
 	jal cursor_go_to
 	
@@ -220,7 +258,8 @@ INIT_CHARACTER:
 	
 	# Generate random number between 1 and width-2 of board (accounting for borders)
 	lb $a1, boardWidth	
-	addi $a1, $a1, -2  # Subtract 2 to account for both borders
+	addi $a1, $a1, 1  # Subtract 2 to account for both borders
+	li $a0, 0
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
@@ -229,7 +268,8 @@ INIT_CHARACTER:
 	
 	# Generate random number between 2 and height-1 of board (accounting for borders and score)
 	lb $a1, boardHeight	
-	addi $a1, $a1, -4  # Subtract 4 to account for both borders
+	addi $a1, $a1, 1  # Subtract 4 to account for both borders
+	li $a0, 0
 	li $v0, 42
 	syscall                 # Make the syscall to generate random number
 	
@@ -275,6 +315,9 @@ update_p_up:
 	
 	jal clear_player_space
 	
+	li $a1, 3
+	jal update_seed
+	
 	# Load the player coordinates for cursor positioning
 	lb $a0, playerX
 	lb $a1, playerY
@@ -300,6 +343,9 @@ update_p_left:
 	sw $ra, 4($sp)
 	
 	jal clear_player_space
+	
+	li $a1, 3
+	jal update_seed
 	
 	# Load the player coordinates for cursor positioning
 	lb $a0, playerX
@@ -327,6 +373,9 @@ update_p_down:
 	
 	jal clear_player_space
 	
+	li $a1, -3
+	jal update_seed
+	
 	# Load the player coordinates for cursor positioning
 	lb $a0, playerX
 	lb $a1, playerY
@@ -352,6 +401,9 @@ update_p_right:
 	sw $ra, 4($sp)
 	
 	jal clear_player_space
+	
+	li $a1, -3
+	jal update_seed
 	
 	# Load the player coordinates for cursor positioning
 	lb $a0, playerX
@@ -508,7 +560,6 @@ exit_display_board_line:
 	addi $sp, $sp, 4
 	jr $ra
 	
-	
 update_score_displayed:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -516,31 +567,56 @@ update_score_displayed:
 	# Load coordinates of score number
 	lb $t0, boardWidth
 	div $t0, $t0, 2
-	addi $a0, $t0, 5
+	addi $a0, $t0, 6
 	li $a1, 0
 	
 	# Go to score number coordinates
 	jal cursor_go_to
 	
-	# Calculate number in score for display
+	# Get score value and initialize
 	lb $t0, score
-	li $t1, 10
-	div $t0, $t1
 	
-	# Print first digit
-	mflo $a0
-	addi $a0, $a0, 48
+	# Divide score by 100
+	li $t1, 100
+	div $t0, $t1
+	mflo $t2        # Hundreds digit
+	mfhi $t0        # Remainder
+	
+	# Print hundreds if non-zero
+	beqz $t2, check_tens
+	addi $a0, $t2, 48
 	jal dspl_check_and_print
 	
-	# Print second digit
-	mfhi $a0
-	addi $a0, $a0, 48
+	#Print leading 0s for 100
+	li $a0, 48
+	jal dspl_check_and_print
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+		
+	
+check_tens:
+	li $t1, 10
+	div $t0, $t1
+	mflo $t3        # Tens digit
+	mfhi $t4        # Ones digit
+
+	# Print tens if non-zero or if hundreds was printed
+	beqz $t3, print_ones
+	addi $a0, $t3, 48
+	jal dspl_check_and_print
+
+print_ones:
+	# Always print ones digit
+	addi $a0, $t4, 48
 	jal dspl_check_and_print
 
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
+		
 # MAIN DISPLAY FUNCTION
 DISPLAY:
 	addi $sp, $sp, -4

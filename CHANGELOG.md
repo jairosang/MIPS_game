@@ -1,13 +1,22 @@
-v0.0.5 [THE REWARD][]
+v1.1.0 [Better randomness]
+
+[X] - Add generation seed changes based on player movements
+[X] - Add a minimum reward-player distance for reward generation
+
+v1.0.0 [FIRST FULL VERSION][X]
 
 [X] - Add a reward variable with current reward position
 [X] - Create a randomly placed reward
 [X] - Check for player collision with reward
 [X] - Increase the score when collision is detected with reward
 [X] - Reallocate reward
-[] - Make sure reward cannot appear in the current player position
+[X] - Add win condition
+[X] - Make sure reward cannot appear in the current player position
 
-v0.0.4 [PROPER PLAYER LOCATION UPDATES] [X]
+[X] - BUG: Player and reward only spawning in upper half of grid
+      Fix: Wrong generation values in INIT_CHARACTER AND INIT_REWARD
+
+v0.4.0 [PROPER PLAYER LOCATION UPDATES] [X]
 
 1.Figured out ANSI escape codes
 2.Figured out ANSI escape codes do not work in MIPS MMIO
@@ -19,14 +28,14 @@ v0.0.4 [PROPER PLAYER LOCATION UPDATES] [X]
 [X] - Apply game over to border collision
 
 
-v0.0.3 [PROPER GRID ARRAY] []
+v0.3.0 [PROPER GRID ARRAY] []
 SKIPPED
 [] - Storing grid as a .space array instead of ASCII (now that I know the first bug was because of the ASCII values)
 [] - Creating a function to initialize the .space into the value of ' '
 
 
 CURRENT
-v0.0.2 [KEYBOARD INPUTS] [X]
+v0.2.0 [KEYBOARD INPUTS] [X]
 
 [X] - Creating keyboard get character function
 [X] - Polling keyboard control register
@@ -39,7 +48,7 @@ FUTURE BUG: Cannot assess if character is out of bounds
 
 
 
-v0.0.1 [DISPLAY FUNCTIONS] [X]
+v0.1.0 [DISPLAY FUNCTIONS] [X]
 
 [X] - Create function to display grid (structure the grid)
 [X] - Figure out polling
