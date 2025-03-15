@@ -20,6 +20,7 @@
 	space: .byte ' '
 	player: .byte 'P'
 	reward: .byte 'R'
+	enemy: .byte 'E'
 	
 	# Board info
 	boardWidth: .byte 15
@@ -28,13 +29,15 @@
 	# Data 
 	playerX: .byte 0
 	playerY: .byte 0
+	enemyX: .byte 0
+	enemyY:	.byte 0
 	rewardX: .byte 0
 	rewardY: .byte 0
 	rewardSeed: .word 300
 	
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collision_player_border, collision_player_reward, game_won
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collision_player_border, collision_player_reward, game_won
 
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
@@ -82,7 +85,8 @@ game_over:
 	li $a0, 12
 	jal dspl_check_and_print
 	
-	jal display_score
+	jal display_score_label
+	jal over_score_update
 	
 	li $a0, 0
 	li $a1, 1
@@ -112,6 +116,7 @@ game_won:
 	beq $t0, 100, game_over
 	
 	jr $ra
+	
 
 collision_player_border:
 	lb $t0, playerX
@@ -249,6 +254,50 @@ exit_reward_generation:
 	addi $sp, $sp, 4
 	jr $ra
 	
+# ENEMY FUNCTIONS
+#=============================================================================================================================================================================================
+
+INIT_ENEMY:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	la $t0, enemyX
+	la $t1, enemyY
+	
+	# Generate random number between 1 and width-2 of board (accounting for borders)
+	lb $a1, boardWidth	
+	addi $a1, $a1, 1  # Subtract 2 to account for both borders
+	li $a0, 0
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 1	# Add 1 to ensure player spawns between borders (1 to width-2)
+	sb $a0, ($t0)
+	
+	# Generate random number between 2 and height-1 of board (accounting for borders and score)
+	lb $a1, boardHeight	
+	addi $a1, $a1, 1  # Subtract 4 to account for both borders
+	li $a0, 0
+	li $v0, 42
+	syscall                 # Make the syscall to generate random number
+	
+	addi $a0, $a0, 2	# Add 2 to account for score display and top border
+	sb $a0, ($t1)
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, enemyX
+	lb $a1, enemyY
+	
+	# Locate the player in random location
+	jal cursor_go_to
+	
+	lb $a0, enemy
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+			
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
 INIT_CHARACTER:
@@ -484,38 +533,38 @@ display_border:
 	jr $ra
 
 
-# Loops to display the word "Score: "
-display_score:
+# Loops to display the word "Score:"
+display_score_spaces:
 	addi $sp, $sp, -4
 	sw  $ra, 4($sp)
 
-	lb $t2, boardWidth
-	div $t2, $t2, 2
-	addi $t2, $t2, -3
+	lb $a0, boardWidth
+	div $a0, $a0, 2
+	addi $a0, $a0, -2
 	
-loop_space_display_score:
-	jal print_space
+	li $a1, 0
+	jal cursor_go_to
 	
-	beqz $t2, exit_loop_space_display_score
-	addi $t2, $t2, -1
+	la $t1, scoreLabel			# Load the address of string into $t1
+	j loop_display_score
 	
-	j loop_space_display_score
-exit_loop_space_display_score:
+# Displays the label of the score
+display_score_label:
+	addi $sp, $sp, -4
+	sw  $ra, 4($sp)
+	
 	la $t1, scoreLabel			# Load the address of string into $t1
 	
 loop_display_score:
-	lb $a0, ($t1)				# Stores the according letter value in $a0
-	beq $a0, $zero, exit_display_score	#If the value is null, the word ended 
+	lb $a0, ($t1)					# Stores the according letter value in $a0
+	beq $a0, $zero, exit_display_score_label	#If the value is null, the word ended 
 	jal dspl_check_and_print
 	
 	# Goes to character address in string
 	addi $t1, $t1, 1	
 	
 	j loop_display_score
-exit_display_score:
-	# Display score number
-	jal update_score_displayed
-	
+exit_display_score_label:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -528,21 +577,20 @@ display_top_border:
 	lb $t1, boardWidth	# Load counter in t1
 	addi $t1, $t1, 2 	# Account for extra side borders
 	
-
 loop_display_top_border:
-	
 	jal display_border
 	
 	beqz $t1, exit_loop_display_top_border
 	addi $t1, $t1, -1
 
 	j loop_display_top_border
+	
 exit_loop_display_top_border:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
 	
-# Initializes the board display to display from beginning
+# Displays a line of the board
 display_board_line:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -561,20 +609,34 @@ exit_display_board_line:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
-update_score_displayed:
+
+# Score Updating
+# ============
+# Updates the number displayed as a score when game is over
+over_score_update:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
 	# Load coordinates of score number
-	lb $t0, boardWidth
-	div $t0, $t0, 2
-	addi $a0, $t0, 4
+	li $a0, 6
 	li $a1, 0
-	
-	# Go to score number coordinates
 	jal cursor_go_to
 	
+	j update_score_jump
+
+# Updates the number displayed as a score
+update_score_displayed:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	lb $a0, boardWidth
+	div $a0, $a0, 2
+	addi $a0, $a0, 4
+	
+	li $a1, 0
+	jal cursor_go_to
+
+update_score_jump:	
 	# Get score value and initialize
 	lb $t0, score
 	
@@ -598,7 +660,6 @@ update_score_displayed:
 	addi $sp, $sp, 4
 	jr $ra
 		
-	
 check_tens:
 	li $t1, 10
 	div $t0, $t1
@@ -618,7 +679,8 @@ print_ones:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-		
+# ============
+				
 # MAIN DISPLAY FUNCTION
 DISPLAY:
 	addi $sp, $sp, -4
@@ -630,8 +692,9 @@ DISPLAY:
 	
 	# Init current line to 0
 	li $t3, 0
-		
-	jal display_score
+	
+	jal display_score_spaces
+	jal update_score_displayed
 	jal print_new_line
 	
 	jal display_top_border
