@@ -2,10 +2,10 @@
 # INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY
 
 # Imported get and print functions: GET_KEYBOARD, dspl_check_and_print
-# Imported functions: update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+# Imported functions: update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, move_enemy
 
-# Imported checks: 
-# COLLISION_CHECKS
+# Imported checks: COLLISION_CHECKS
+# Vars: playerX, playerY
 .text
 .globl main
 main:	
@@ -17,6 +17,7 @@ main:
 	
 input_loop:
 	jal COLLISION_CHECKS
+	jal move_enemy
 	jal GET_KEYBOARD
 	
 	# Keyboard input conditions
@@ -29,18 +30,30 @@ input_loop:
 	j input_loop
 	
 move_p_up:
-	jal update_p_up
+	li $a0, -1
+	li $a1, 3
+	la $a2, playerY
+	jal update_p
 	j input_loop
 	
 move_p_left:
-	jal update_p_left
+	li $a0, -1
+	li $a1, 3
+	la $a2, playerX
+	jal update_p
 	j input_loop
 
 move_p_down:
-	jal update_p_down
+	li $a0, 1
+	li $a1, -3
+	la $a2, playerY
+	jal update_p
 	j input_loop
 
 move_p_right:
-	jal update_p_right
+	li $a0, 1
+	li $a1, -3
+	la $a2, playerX
+	jal update_p
 	j input_loop
 	

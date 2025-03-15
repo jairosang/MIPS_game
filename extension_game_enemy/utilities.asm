@@ -12,7 +12,7 @@
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
 	
 	# Board info
-	boardWidth: .byte 15
+	boardWidth: .byte 6
 	boardHeight: .byte 6
 	
 	# Board elements
@@ -33,18 +33,18 @@
 	rewardX: .byte 0
 	rewardY: .byte 0
 	rewardSeed: .word 300
-	playerEnemyMaxSpawnDistance: .byte 6
+	playerEnemyMaxSpawnDistance: .byte 7
 	
 	
 .text
 .globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY, GET_KEYBOARD, COLLISION_CHECKS
-.globl dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+.globl dspl_check_and_print, update_p, move_enemy, cursor_go_to
+.globl playerX, playerY
 	j main		# In case file is executed move to main file	
 		
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
-
 
 	lw $s0, DISPLAY_CTRL_R       	# Load the address of the display control resgister.
 	lw $s1, DISPLAY_ADDR		# Load the address of the display data register
@@ -191,16 +191,27 @@ enemy_player_distance:
 	
 	sub $t0, $t0, $t2
 	sub $t1, $t1, $t3
-	
-	mul $t0, $t0, $t0
-	mul $t1, $t1, $t1
+
+	abs $t0, $t0
+	abs $t1, $t1
 	 
-	add $t0, $t0, $t1
-	mtc1 $t0, $f1
-	cvt.s.w $f1, $f1
-	sqrt.s $f1, $f1
-	cvt.w.s $f1, $f1
-	mfc1 $a0, $f1
+	add $a0, $t0, $t1
+	
+	jr $ra
+	
+enemy_reward_distance:
+	lb $t0, playerX
+	lb $t1, playerY
+	lb $t2, rewardX
+	lb $t3, rewardY
+	
+	sub $t0, $t0, $t2
+	sub $t1, $t1, $t3
+
+	abs $t0, $t0
+	abs $t1, $t1
+	 
+	add $a0, $t0, $t1
 	
 	jr $ra
 	
@@ -342,7 +353,115 @@ store_enemy:
 	jr $ra
 
 
+move_enemy:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
 
+	jal enemy_player_distance
+	add $t4, $a0, $zero
+	jal enemy_reward_distance
+	add $t5, $a0, $zero
+	
+	blt $t4, $t5, move_enemy_to_player
+	
+move_enemy_to_reward:
+	lb $t0, enemyX
+	lb $t1, enemyY
+	lb $t2, rewardX
+	lb $t3, rewardY
+	
+	sub $t0, $t2, $t0
+	sub $t1, $t3, $t1
+	
+	abs $t2, $t0
+	abs $t3, $t1
+	
+	bgt $t3, $t2, move_enemy_to_y
+	j move_enemy_to_x
+	
+move_enemy_to_player:
+	
+	lb $t0, enemyX
+	lb $t1, enemyY
+	lb $t2, playerX
+	lb $t3, playerY
+	
+	sub $t0, $t2, $t0
+	sub $t1, $t3, $t1
+	
+	abs $t2, $t0
+	abs $t3, $t1
+	
+	bgt $t3, $t2, move_enemy_to_y
+	
+move_enemy_to_x:
+	div $a0, $t0, $t2
+	la $a1, enemyX
+	jal update_e
+	j exit_move_enemy
+	
+move_enemy_to_y:
+	div $a0, $t1, $t3
+	la $a1, enemyY
+	jal update_e
+	j exit_move_enemy
+	
+exit_move_enemy:
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+
+
+clear_enemy_space:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, enemyX
+	lb $a1, enemyY
+	
+	# Locate the player in random location
+	jal cursor_go_to
+	
+	# Remove player from location
+	lb $a0, space
+	jal dspl_check_and_print
+	
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
+	
+update_e:
+	# Args: $a0 stepsToMove, $a1 axistOfMovementAddress
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	add $t7, $a0, $zero
+	add $t6, $a1, $zero
+	
+	jal clear_enemy_space
+	
+	# Update player $a2 axis to $a0
+	add $a1, $t6, $zero
+	lb $t0, ($a1)
+	add $t0, $t0, $t7
+	sb $t0, ($a1)
+	
+	# Load the player coordinates for cursor positioning
+	lb $a0, enemyX
+	lb $a1, enemyY
+	
+	# Go to player new location
+	jal cursor_go_to
+	
+	# Print player
+	lb $a0, enemy
+	jal dspl_check_and_print
+	
+
+	lw $ra, 4($sp)
+	addi $sp, $sp, 4
+	jr $ra
 			
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
@@ -406,22 +525,23 @@ clear_player_space:
 	addi $sp, $sp, 4
 	jr $ra
 	
-update_p_up:
+update_p:
+	# Args: $a0 stepsToMove, $a1 seedingChange, $a2 axistOfMovementAddress
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
+	add $t7, $a0, $zero
 	
 	jal clear_player_space
-	
-	li $a1, 3
 	jal update_seed
+	
+	# Update player $a2 axis to $a0
+	lb $t0, ($a2)
+	add $t0, $t0, $t7
+	sb $t0, ($a2)
 	
 	# Load the player coordinates for cursor positioning
 	lb $a0, playerX
 	lb $a1, playerY
-	
-	# Update player Y axis to -1 
-	addi $a1, $a1, -1
-	sb $a1, playerY
 	
 	# Go to player new location
 	jal cursor_go_to
@@ -434,94 +554,6 @@ update_p_up:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-
-update_p_left:
-	addi $sp, $sp, -4
-	sw $ra, 4($sp)
-	
-	jal clear_player_space
-	
-	li $a1, 3
-	jal update_seed
-	
-	# Load the player coordinates for cursor positioning
-	lb $a0, playerX
-	lb $a1, playerY
-	
-	# Update player X axis to -1 
-	addi $a0, $a0, -1
-	sb $a0, playerX
-	
-	# Go to player new location
-	jal cursor_go_to
-	
-	# Print player
-	lb $a0, player
-	jal dspl_check_and_print
-	
-
-	lw $ra, 4($sp)
-	addi $sp, $sp, 4
-	jr $ra
-
-update_p_down:
-	addi $sp, $sp, -4
-	sw $ra, 4($sp)
-	
-	jal clear_player_space
-	
-	li $a1, -3
-	jal update_seed
-	
-	# Load the player coordinates for cursor positioning
-	lb $a0, playerX
-	lb $a1, playerY
-	
-	# Update player Y axis to +1 
-	addi $a1, $a1, 1
-	sb $a1, playerY
-	
-	# Go to player new location
-	jal cursor_go_to
-	
-	# Print player
-	lb $a0, player
-	jal dspl_check_and_print
-	
-
-	lw $ra, 4($sp)
-	addi $sp, $sp, 4
-	jr $ra
-	
-update_p_right:
-	addi $sp, $sp, -4
-	sw $ra, 4($sp)
-	
-	jal clear_player_space
-	
-	li $a1, -3
-	jal update_seed
-	
-	# Load the player coordinates for cursor positioning
-	lb $a0, playerX
-	lb $a1, playerY
-	
-	# Update player X axis to +1 
-	addi $a0, $a0, 1
-	sb $a0, playerX
-	
-	# Go to player new location
-	jal cursor_go_to
-	
-	# Print player
-	lb $a0, player
-	jal dspl_check_and_print
-	
-
-	lw $ra, 4($sp)
-	addi $sp, $sp, 4
-	jr $ra
-
 
 # DISPLAY FUNCTIONS
 #=============================================================================================================================================================================================
@@ -726,7 +758,7 @@ print_ones:
 	addi $sp, $sp, 4
 	jr $ra
 # ============
-				
+
 # MAIN DISPLAY FUNCTION
 INIT_DISPLAY:
 	addi $sp, $sp, -4
