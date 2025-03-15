@@ -33,11 +33,14 @@
 	rewardX: .byte 0
 	rewardY: .byte 0
 	rewardSeed: .word 300
+	playerEnemyMaxSpawnDistance: .byte 6
 	
 	
-.text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY, GET_KEYBOARD, COLLISION_CHECKS, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
-
+.text
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY, GET_KEYBOARD, COLLISION_CHECKS
+.globl dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
+	j main		# In case file is executed move to main file	
+		
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -108,10 +111,11 @@ exit_loop_game_over_msg:
 	syscall
 	
 	
-# CHECK FUNCTIONS
+# CHECK FUNCTION
 #=============================================================================================================================================================================================
 # {
 COLLISION_CHECKS:
+
 collision_player_border:
 	lb $t0, playerX
 	lb $t1, playerY
@@ -126,9 +130,19 @@ collision_player_border:
 	bgt $t1, $t3, game_over
 	blt $t1, 2, game_over
 
+collision_player_enemy:
+	
+	lb $t0, playerX
+	lb $t1, playerY
+	lb $t2, enemyX
+	lb $t3, enemyY
+	
+	bne $t0, $t2, exit_collision_player_enemy
+	bne $t1, $t3, exit_collision_player_enemy
+	j game_over
+exit_collision_player_enemy:
+	
 collision_player_reward:
-	addi $sp, $sp, -4
-	sw $ra, 4($sp)
 	
 	lb $t0, playerX
 	lb $t1, playerY
@@ -138,10 +152,7 @@ collision_player_reward:
 	bne $t0, $t2, exit_collision_player_reward
 	bne $t1, $t3, exit_collision_player_reward
 	j player_gets_reward
-	
 exit_collision_player_reward:
-	lw $ra, 4($sp)
-	addi $sp, $sp, 4
 
 
 game_won:
@@ -171,10 +182,32 @@ update_seed:
 	
 	jr $ra
 	
+# Calulates the distance between the enemy and the player
+enemy_player_distance:
+	lb $t0, playerX
+	lb $t1, playerY
+	lb $t2, enemyX
+	lb $t3, enemyY
+	
+	sub $t0, $t0, $t2
+	sub $t1, $t1, $t3
+	
+	mul $t0, $t0, $t0
+	mul $t1, $t1, $t1
+	 
+	add $t0, $t0, $t1
+	mtc1 $t0, $f1
+	cvt.s.w $f1, $f1
+	sqrt.s $f1, $f1
+	cvt.w.s $f1, $f1
+	mfc1 $a0, $f1
+	
+	jr $ra
+	
 # CURSOR FUNCTIONS
 #=============================================================================================================================================================================================
 cursor_go_to:
-	# Args a0 = X axis, a1 = Y axis
+				# Args a0 = X axis, a1 = Y axis
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
@@ -258,7 +291,7 @@ exit_reward_generation:
 INIT_ENEMY:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
-	
+loop_init_enemy:
 	la $t0, enemyX
 	la $t1, enemyY
 	
@@ -282,6 +315,18 @@ INIT_ENEMY:
 	addi $a0, $a0, 2	# Add 2 to account for score display and top border
 	sb $a0, ($t1)
 	
+	
+	jal enemy_player_distance
+	lb $t0, playerEnemyMaxSpawnDistance
+	bgt $a0, $t0, store_enemy
+	
+	jal clear_player_space
+	jal INIT_CHARACTER
+	
+	j loop_init_enemy
+	
+store_enemy:
+	
 	# Load the player coordinates for cursor positioning
 	lb $a0, enemyX
 	lb $a1, enemyY
@@ -295,6 +340,9 @@ INIT_ENEMY:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
+
+
+
 			
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
@@ -629,7 +677,7 @@ update_score_displayed:
 	
 	lb $a0, boardWidth
 	div $a0, $a0, 2
-	addi $a0, $a0, 4
+	addi $a0, $a0, 5
 	
 	li $a1, 0
 	jal cursor_go_to

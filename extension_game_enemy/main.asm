@@ -7,9 +7,9 @@
 # Imported checks: 
 # COLLISION_CHECKS
 .text
-jal INIT_UTILITIES_ADDRS
-
+.globl main
 main:	
+	jal INIT_UTILITIES_ADDRS
 	jal INIT_DISPLAY
 	jal INIT_CHARACTER
 	jal INIT_ENEMY
@@ -18,7 +18,6 @@ main:
 input_loop:
 	jal COLLISION_CHECKS
 	jal GET_KEYBOARD
-	
 	
 	# Keyboard input conditions
 	beq $v0, 119, move_p_up
