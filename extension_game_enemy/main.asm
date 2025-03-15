@@ -1,24 +1,22 @@
 # Imported initializers:
-# INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, DISPLAY
+# INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY
 
 # Imported get and print functions: GET_KEYBOARD, dspl_check_and_print
 # Imported functions: update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
 
 # Imported checks: 
-# collission_player_border, collission_player_reward, game_won
+# COLLISION_CHECKS
 .text
 jal INIT_UTILITIES_ADDRS
 
 main:	
-	jal DISPLAY
+	jal INIT_DISPLAY
 	jal INIT_CHARACTER
 	jal INIT_ENEMY
 	jal INIT_REWARD
 	
 input_loop:
-	jal collision_player_border
-	jal collision_player_reward
-	jal game_won
+	jal COLLISION_CHECKS
 	jal GET_KEYBOARD
 	
 	

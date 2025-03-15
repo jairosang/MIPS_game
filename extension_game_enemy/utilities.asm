@@ -4,13 +4,16 @@
 
 # RESERVED $s0, $s1 FOR DISPLAY
 # RESERVED $s2, $s3 FOR KEYBOARD
-# RESERVED $s7 FOR ARRAY DISPLAY
 .data
 	# Constants
 	DISPLAY_CTRL_R: .word 0xFFFF0008 #Display control register
 	DISPLAY_ADDR: .word 0xFFFF000C  # Display address
 	KEYBOARD_STATUS: .word 0xFFFF0000  # Address to check IF a key is pressed
 	KEYBOARD_DATA: .word 0xFFFF0004    # Address to read THE key pressed
+	
+	# Board info
+	boardWidth: .byte 15
+	boardHeight: .byte 6
 	
 	# Board elements
 	gameOverMessage: .asciiz "GAME OVER"
@@ -21,10 +24,6 @@
 	player: .byte 'P'
 	reward: .byte 'R'
 	enemy: .byte 'E'
-	
-	# Board info
-	boardWidth: .byte 15
-	boardHeight: .byte 6
 	
 	# Data 
 	playerX: .byte 0
@@ -37,7 +36,7 @@
 	
 	
 .text 
-.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, DISPLAY, GET_KEYBOARD, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to, collision_player_border, collision_player_reward, game_won
+.globl INIT_UTILITIES_ADDRS, INIT_CHARACTER, INIT_REWARD, INIT_ENEMY, INIT_DISPLAY, GET_KEYBOARD, COLLISION_CHECKS, dspl_check_and_print, update_p_up, update_p_left, update_p_down, update_p_right, cursor_go_to
 
 INIT_UTILITIES_ADDRS:
 	addi $sp, $sp, -4
@@ -111,13 +110,8 @@ exit_loop_game_over_msg:
 	
 # CHECK FUNCTIONS
 #=============================================================================================================================================================================================
-game_won:
-	lb $t0, score
-	beq $t0, 100, game_over
-	
-	jr $ra
-	
-
+# {
+COLLISION_CHECKS:
 collision_player_border:
 	lb $t0, playerX
 	lb $t1, playerY
@@ -131,8 +125,6 @@ collision_player_border:
 	blt $t0, 1, game_over
 	bgt $t1, $t3, game_over
 	blt $t1, 2, game_over
-
-	jr $ra
 
 collision_player_reward:
 	addi $sp, $sp, -4
@@ -150,8 +142,14 @@ collision_player_reward:
 exit_collision_player_reward:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
-	jr $ra
+
+
+game_won:
+	lb $t0, score
+	beq $t0, 100, game_over
 	
+	jr $ra
+# }
 		
 # DATA FUNCTIONS
 #=============================================================================================================================================================================================
@@ -682,7 +680,7 @@ print_ones:
 # ============
 				
 # MAIN DISPLAY FUNCTION
-DISPLAY:
+INIT_DISPLAY:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
