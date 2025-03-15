@@ -8,9 +8,10 @@
 # collission_player_border, collission_player_reward, game_won
 .text
 jal INIT_UTILITIES_ADDRS
-jal DISPLAY
+
 
 main:	
+	jal DISPLAY
 	jal INIT_CHARACTER
 	jal INIT_REWARD
 	

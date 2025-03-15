@@ -82,7 +82,8 @@ game_over:
 	li $a0, 12
 	jal dspl_check_and_print
 	
-	jal display_score
+	jal display_score_label
+	jal over_score_update
 	
 	li $a0, 0
 	li $a1, 1
@@ -112,6 +113,7 @@ game_won:
 	beq $t0, 100, game_over
 	
 	jr $ra
+	
 
 collision_player_border:
 	lb $t0, playerX
@@ -248,6 +250,7 @@ exit_reward_generation:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
+	
 	
 # CHARACTER FUNCTIONS
 #=============================================================================================================================================================================================
@@ -484,38 +487,38 @@ display_border:
 	jr $ra
 
 
-# Loops to display the word "Score: "
-display_score:
+# Loops to display the word "Score:"
+display_score_spaces:
 	addi $sp, $sp, -4
 	sw  $ra, 4($sp)
 
-	lb $t2, boardWidth
-	div $t2, $t2, 2
-	addi $t2, $t2, -3
+	lb $a0, boardWidth
+	div $a0, $a0, 2
+	addi $a0, $a0, -2
 	
-loop_space_display_score:
-	jal print_space
+	li $a1, 0
+	jal cursor_go_to
 	
-	beqz $t2, exit_loop_space_display_score
-	addi $t2, $t2, -1
+	la $t1, scoreLabel			# Load the address of string into $t1
+	j loop_display_score
 	
-	j loop_space_display_score
-exit_loop_space_display_score:
+# Displays the label of the score
+display_score_label:
+	addi $sp, $sp, -4
+	sw  $ra, 4($sp)
+	
 	la $t1, scoreLabel			# Load the address of string into $t1
 	
 loop_display_score:
-	lb $a0, ($t1)				# Stores the according letter value in $a0
-	beq $a0, $zero, exit_display_score	#If the value is null, the word ended 
+	lb $a0, ($t1)					# Stores the according letter value in $a0
+	beq $a0, $zero, exit_display_score_label	#If the value is null, the word ended 
 	jal dspl_check_and_print
 	
 	# Goes to character address in string
 	addi $t1, $t1, 1	
 	
 	j loop_display_score
-exit_display_score:
-	# Display score number
-	jal update_score_displayed
-	
+exit_display_score_label:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -528,21 +531,20 @@ display_top_border:
 	lb $t1, boardWidth	# Load counter in t1
 	addi $t1, $t1, 2 	# Account for extra side borders
 	
-
 loop_display_top_border:
-	
 	jal display_border
 	
 	beqz $t1, exit_loop_display_top_border
 	addi $t1, $t1, -1
 
 	j loop_display_top_border
+	
 exit_loop_display_top_border:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
 	
-# Initializes the board display to display from beginning
+# Displays a line of the board
 display_board_line:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
@@ -561,20 +563,34 @@ exit_display_board_line:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
-update_score_displayed:
+
+# Score Updating
+# ============
+# Updates the number displayed as a score when game is over
+over_score_update:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	
 	# Load coordinates of score number
-	lb $t0, boardWidth
-	div $t0, $t0, 2
-	addi $a0, $t0, 4
+	li $a0, 6
 	li $a1, 0
-	
-	# Go to score number coordinates
 	jal cursor_go_to
 	
+	j update_score_jump
+
+# Updates the number displayed as a score
+update_score_displayed:
+	addi $sp, $sp, -4
+	sw $ra, 4($sp)
+	
+	lb $a0, boardWidth
+	div $a0, $a0, 2
+	addi $a0, $a0, 4
+	
+	li $a1, 0
+	jal cursor_go_to
+
+update_score_jump:	
 	# Get score value and initialize
 	lb $t0, score
 	
@@ -598,7 +614,6 @@ update_score_displayed:
 	addi $sp, $sp, 4
 	jr $ra
 		
-	
 check_tens:
 	li $t1, 10
 	div $t0, $t1
@@ -618,7 +633,9 @@ print_ones:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-		
+# ============
+
+						
 # MAIN DISPLAY FUNCTION
 DISPLAY:
 	addi $sp, $sp, -4
@@ -630,8 +647,9 @@ DISPLAY:
 	
 	# Init current line to 0
 	li $t3, 0
-		
-	jal display_score
+	
+	jal display_score_spaces
+	jal update_score_displayed
 	jal print_new_line
 	
 	jal display_top_border
