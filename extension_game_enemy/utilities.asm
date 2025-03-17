@@ -30,15 +30,17 @@
 	playerY: .byte 0
 	prevPlayerX: .byte 0
 	prevPlayerY: .byte 0
-	enemyX: .byte 0
-	enemyY:	.byte 0
 	rewardX: .byte 0
 	rewardY: .byte 0
+	rewardSeed: .word 300
+	
+	# Data for enemy
+	enemyX: .byte 0
+	enemyY:	.byte 0
 	midpointX: .byte 0  # Added for storing midpoint coordinates
 	midpointY: .byte 0
-	rewardSeed: .word 300
 	playerEnemyMaxSpawnDistance: .byte 7
-	enemyReachedReward: .byte 0
+	enemyReachedMidpoint: .byte 0	# Boolean to check if enemy has reached the midpoint
 	interceptThreshold: .byte 3  # Distance threshold to switch between midpoint and direct pursuit
 	
 	
@@ -83,7 +85,10 @@ player_gets_reward:
 	jal increase_score
 	jal update_score_displayed
 	jal INIT_REWARD
-	jal toggle_enemy_reached_reward
+	
+	# Reset the enemyReachedMidpoint flag to 0
+	li $t0, 0
+	sb $t0, enemyReachedMidpoint
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -206,11 +211,35 @@ enemy_player_distance:
 	
 	jr $ra
 	
-enemy_reward_distance:
+# Calculate the midpoint between player and reward
+calculate_midpoint:
+	
+	# Calculate X midpoint
+	lb $t0, prevPlayerX
+	lb $t1, rewardX
+	add $t2, $t0, $t1
+	srl $t2, $t2, 1  # Divide by 2 to get midpoint
+	sb $t2, midpointX
+	
+	# Calculate Y midpoint
+	lb $t0, prevPlayerY
+	lb $t1, rewardY
+	add $t2, $t0, $t1
+	srl $t2, $t2, 1  # Divide by 2 to get midpoint
+	sb $t2, midpointY
+	
+	jr $ra
+	
+calculate_midpoint_square:
+
+	jr $ra
+
+# Calculate distance between enemy and midpoint
+enemy_midpoint_distance:
 	lb $t0, enemyX
 	lb $t1, enemyY
-	lb $t2, rewardX
-	lb $t3, rewardY
+	lb $t2, midpointX
+	lb $t3, midpointY
 	
 	sub $t0, $t0, $t2
 	sub $t1, $t1, $t3
@@ -358,54 +387,7 @@ store_enemy:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
-toggle_enemy_reached_reward:
-    	lb $t0, enemyReachedReward
-    	li $t1, 1
-    	xor $t0, $t0, $t1
-    	sb $t0, enemyReachedReward
     	
-    	jr $ra
-
-# Calculate the midpoint between player and reward
-calculate_midpoint:
-	addi $sp, $sp, -4
-	sw $ra, 4($sp)
-	
-	# Calculate X midpoint
-	lb $t0, prevPlayerX
-	lb $t1, rewardX
-	add $t2, $t0, $t1
-	srl $t2, $t2, 1  # Divide by 2 to get midpoint
-	sb $t2, midpointX
-	
-	# Calculate Y midpoint
-	lb $t0, prevPlayerY
-	lb $t1, rewardY
-	add $t2, $t0, $t1
-	srl $t2, $t2, 1  # Divide by 2 to get midpoint
-	sb $t2, midpointY
-	
-	lw $ra, 4($sp)
-	addi $sp, $sp, 4
-	jr $ra
-
-# Calculate distance between enemy and midpoint
-enemy_midpoint_distance:
-	lb $t0, enemyX
-	lb $t1, enemyY
-	lb $t2, midpointX
-	lb $t3, midpointY
-	
-	sub $t0, $t0, $t2
-	sub $t1, $t1, $t3
-
-	abs $t0, $t0
-	abs $t1, $t1
-	 
-	add $a0, $t0, $t1
-	
-	jr $ra
 
 move_enemy:
 	addi $sp, $sp, -4
@@ -418,16 +400,33 @@ move_enemy:
 	jal enemy_player_distance
 	beqz $a0, game_over  # If enemy catches player, game over
 	
+	# Check if enemy has reached midpoint
+	lb $t0, enemyReachedMidpoint
+	bnez $t0, move_enemy_randomly  # If flag is set, enemy should move randomly
+	j move_enemy_to_midpoint       # Otherwise, move to midpoint
+
+move_enemy_randomly:
+	# For now, we want the enemy to stop moving when it reaches midpoint
+	# So we'll just exit without moving
+	j exit_move_enemy
+
+move_enemy_to_midpoint:
 	# Move to midpoint position
 	lb $t0, enemyX
 	lb $t1, enemyY
 	lb $t2, midpointX
 	lb $t3, midpointY
 	
-	# Check if already at midpoint
-	beq $t0, $t2, check_y_movement
-	beq $t1, $t3, check_x_movement
+	# Check if already at midpoint (both X and Y match)
+	bne $t0, $t2, not_at_midpoint
+	bne $t1, $t3, not_at_midpoint
 	
+	# If we get here, enemy is at midpoint
+	li $t0, 1
+	sb $t0, enemyReachedMidpoint
+	j exit_move_enemy
+	
+not_at_midpoint:
 	# Calculate movement direction
 	sub $t0, $t2, $t0  # Direction to move in X
 	sub $t1, $t3, $t1  # Direction to move in Y
@@ -435,36 +434,10 @@ move_enemy:
 	abs $t2, $t0
 	abs $t3, $t1
 	
-	# If both distances are 0, we're at the midpoint
-	beqz $t2, check_y_only
-	beqz $t3, check_x_only
-	
-	# Otherwise move in the direction with larger distance
+	# Move in the direction with larger distance
 	bgt $t3, $t2, move_enemy_to_y
 	j move_enemy_to_x
 
-check_y_movement:
-	# Only check Y movement if X is already at midpoint
-	sub $t1, $t3, $t1  # Direction to move in Y
-	beqz $t1, exit_move_enemy  # If no Y movement needed, exit
-	abs $t3, $t1
-	j move_enemy_to_y
-
-check_x_movement:
-	# Only check X movement if Y is already at midpoint
-	sub $t0, $t2, $t0  # Direction to move in X
-	beqz $t0, exit_move_enemy  # If no X movement needed, exit
-	abs $t2, $t0
-	j move_enemy_to_x
-
-check_y_only:
-	beqz $t3, exit_move_enemy  # If no movement needed, exit
-	j move_enemy_to_y
-
-check_x_only:
-	beqz $t2, exit_move_enemy  # If no movement needed, exit
-	j move_enemy_to_x
-	
 move_enemy_to_x:
 	div $a0, $t0, $t2  # Get direction (-1 or 1)
 	la $a1, enemyX
