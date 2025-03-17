@@ -417,11 +417,26 @@ move_enemy_to_midpoint:
 	lb $t2, midpointX
 	lb $t3, midpointY
 	
+	# Check if midpoint is at reward position
+	lb $t4, rewardX
+	lb $t5, rewardY
+	beq $t2, $t4, midpoint_at_reward
+	beq $t3, $t5, check_x_at_reward
+	j continue_midpoint_movement
+	
+midpoint_at_reward:
+	beq $t3, $t5, set_reached_midpoint  # If both X and Y match reward, consider midpoint reached
+	
+check_x_at_reward:
+	beq $t2, $t4, set_reached_midpoint  # If both X and Y match reward, consider midpoint reached
+	
+continue_midpoint_movement:
 	# Check if already at midpoint (both X and Y match)
 	bne $t0, $t2, not_at_midpoint
 	bne $t1, $t3, not_at_midpoint
 	
-	# If we get here, enemy is at midpoint
+set_reached_midpoint:
+	# If we get here, enemy is at midpoint or midpoint is at reward
 	li $t0, 1
 	sb $t0, enemyReachedMidpoint
 	j exit_move_enemy
@@ -491,6 +506,23 @@ update_e:
 	add $t0, $t0, $t7
 	sb $t0, ($a1)
 	
+	# Check if enemy would move over reward
+	lb $t0, enemyX
+	lb $t1, enemyY
+	lb $t2, rewardX
+	lb $t3, rewardY
+	
+	bne $t0, $t2, not_over_reward
+	bne $t1, $t3, not_over_reward
+	
+	# If enemy would move over reward, move it back
+	add $a1, $t6, $zero
+	lb $t0, ($a1)
+	sub $t0, $t0, $t7
+	sb $t0, ($a1)
+	j exit_update_e
+	
+not_over_reward:
 	# Load the player coordinates for cursor positioning
 	lb $a0, enemyX
 	lb $a1, enemyY
@@ -502,7 +534,7 @@ update_e:
 	lb $a0, enemy
 	jal dspl_check_and_print
 	
-
+exit_update_e:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
