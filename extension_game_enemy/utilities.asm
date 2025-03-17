@@ -28,12 +28,15 @@
 	# Data 
 	playerX: .byte 0
 	playerY: .byte 0
+	prevPlayerX: .byte 0  # Added for storing previous player position
+	prevPlayerY: .byte 0  # Added for storing previous player position
 	enemyX: .byte 0
 	enemyY:	.byte 0
 	rewardX: .byte 0
 	rewardY: .byte 0
 	rewardSeed: .word 300
 	playerEnemyMaxSpawnDistance: .byte 7
+	enemyReachedReward: .byte 0
 	
 	
 .text
@@ -77,6 +80,7 @@ player_gets_reward:
 	jal increase_score
 	jal update_score_displayed
 	jal INIT_REWARD
+	jal toggle_enemy_reached_reward
 	
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
@@ -200,8 +204,8 @@ enemy_player_distance:
 	jr $ra
 	
 enemy_reward_distance:
-	lb $t0, playerX
-	lb $t1, playerY
+	lb $t0, enemyX
+	lb $t1, enemyY
 	lb $t2, rewardX
 	lb $t3, rewardY
 	
@@ -351,17 +355,33 @@ store_enemy:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-
+	
+toggle_enemy_reached_reward:
+    	lb $t0, enemyReachedReward
+    	li $t1, 1
+    	xor $t0, $t0, $t1
+    	sb $t0, enemyReachedReward
+    	
+    	jr $ra
 
 move_enemy:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
+	
+	lb $t0, enemyReachedReward
+	beq $t0, 1, move_enemy_to_player
 
 	jal enemy_player_distance
+	beqz $a0, game_over
 	add $t4, $a0, $zero
-	jal enemy_reward_distance
-	add $t5, $a0, $zero
 	
+	jal enemy_reward_distance
+	beq $a0, 0, skip_toggle_enemy_reached_reward
+	
+	jal toggle_enemy_reached_reward
+    	
+skip_toggle_enemy_reached_reward:
+	add $t5, $a0, $zero
 	blt $t4, $t5, move_enemy_to_player
 	
 move_enemy_to_reward:
@@ -383,8 +403,8 @@ move_enemy_to_player:
 	
 	lb $t0, enemyX
 	lb $t1, enemyY
-	lb $t2, playerX
-	lb $t3, playerY
+	lb $t2, prevPlayerX  # Use previous player position instead of current
+	lb $t3, prevPlayerY  # Use previous player position instead of current
 	
 	sub $t0, $t2, $t0
 	sub $t1, $t3, $t1
@@ -393,6 +413,7 @@ move_enemy_to_player:
 	abs $t3, $t1
 	
 	bgt $t3, $t2, move_enemy_to_y
+	j move_enemy_to_x
 	
 move_enemy_to_x:
 	div $a0, $t0, $t2
@@ -530,6 +551,12 @@ update_p:
 	addi $sp, $sp, -4
 	sw $ra, 4($sp)
 	add $t7, $a0, $zero
+	
+	# Store previous player position before moving
+	lb $t0, playerX
+	sb $t0, prevPlayerX
+	lb $t0, playerY
+	sb $t0, prevPlayerY
 	
 	jal clear_player_space
 	jal update_seed

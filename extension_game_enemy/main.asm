@@ -17,7 +17,6 @@ main:
 	
 input_loop:
 	jal COLLISION_CHECKS
-	jal move_enemy
 	jal GET_KEYBOARD
 	
 	# Keyboard input conditions
@@ -34,6 +33,7 @@ move_p_up:
 	li $a1, 3
 	la $a2, playerY
 	jal update_p
+	jal move_enemy
 	j input_loop
 	
 move_p_left:
@@ -41,6 +41,7 @@ move_p_left:
 	li $a1, 3
 	la $a2, playerX
 	jal update_p
+	jal move_enemy
 	j input_loop
 
 move_p_down:
@@ -48,6 +49,7 @@ move_p_down:
 	li $a1, -3
 	la $a2, playerY
 	jal update_p
+	jal move_enemy
 	j input_loop
 
 move_p_right:
@@ -55,5 +57,6 @@ move_p_right:
 	li $a1, -3
 	la $a2, playerX
 	jal update_p
+	jal move_enemy
 	j input_loop
 	

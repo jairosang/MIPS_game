@@ -1,4 +1,15 @@
-v1.1.0 [Better randomness][X]
+BUGS:
+
+
+
+v1.2.0 [THE ENEMY] []
+
+[X] - Add enemy
+[X] - Add game over in collision with enemy
+[X] - Spawn enemy at a distance from player (Has to be improved)
+[] - Add enemy movement (will prioritize whichever is closer, reward or player))
+
+v1.1.0 [BETTER RANDOMNESS][X]
 
 [X] - Add generation seed changes based on player movements
 
