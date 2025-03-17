@@ -16,9 +16,7 @@ main:
 	jal INIT_REWARD
 	
 input_loop:
-	jal COLLISION_CHECKS
 	jal GET_KEYBOARD
-	jal move_enemy
 	
 	# Keyboard input conditions
 	beq $v0, 119, move_p_up
@@ -34,6 +32,8 @@ move_p_up:
 	li $a1, 3
 	la $a2, playerY
 	jal update_p
+	jal move_enemy
+	jal COLLISION_CHECKS
 	j input_loop
 	
 move_p_left:
@@ -41,6 +41,8 @@ move_p_left:
 	li $a1, 3
 	la $a2, playerX
 	jal update_p
+	jal move_enemy
+	jal COLLISION_CHECKS
 	j input_loop
 
 move_p_down:
@@ -48,6 +50,8 @@ move_p_down:
 	li $a1, -3
 	la $a2, playerY
 	jal update_p
+	jal move_enemy
+	jal COLLISION_CHECKS
 	j input_loop
 
 move_p_right:
@@ -55,5 +59,7 @@ move_p_right:
 	li $a1, -3
 	la $a2, playerX
 	jal update_p
+	jal move_enemy
+	jal COLLISION_CHECKS
 	j input_loop
 	

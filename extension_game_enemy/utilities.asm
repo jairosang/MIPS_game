@@ -313,11 +313,14 @@ generate_reward:
 	lb $a1, rewardY
 	lb $t0, playerX
 	lb $t1, playerY
+	lb $t2, enemyX
+	lb $t3, enemyY
 
-	# Check if new reward is in the same position as player
-	bne $t0, $a0, exit_reward_generation
-	bne $t1, $a1, exit_reward_generation
-	j generate_reward
+	# Check if new reward is in the same position as player or enemy
+	beq $t0, $a0, generate_reward
+	beq $t1, $a1, generate_reward
+	beq $t2, $a0, generate_reward
+	beq $t3, $a1, generate_reward
 	
 exit_reward_generation:
 	# Locate the reward
@@ -394,8 +397,25 @@ move_enemy:
 	# Calculate the current midpoint
 	jal calculate_midpoint
 	
+	# Check if midpoint is at reward position
+	lb $t0, midpointX
+	lb $t1, midpointY
+	lb $t2, rewardX
+	lb $t3, rewardY
+	
+	bne $t0, $t2, midpoint_not_at_reward
+	bne $t1, $t3, midpoint_not_at_reward
+	
+	# If midpoint is at reward, set flag to 1 to prevent movement
+	li $t0, 1
+	sb $t0, enemyReachedMidpoint
+	j exit_move_enemy
+	
+midpoint_not_at_reward:
 	# Check if enemy caught player
 	jal enemy_player_distance
+	
+	# Only end game if distance is exactly 0 (same position)
 	beqz $a0, game_over  # If enemy catches player, game over
 	
 	# Check if enemy has reached midpoint
@@ -415,26 +435,11 @@ move_enemy_to_midpoint:
 	lb $t2, midpointX
 	lb $t3, midpointY
 	
-	# Check if midpoint is at reward position
-	lb $t4, rewardX
-	lb $t5, rewardY
-	beq $t2, $t4, midpoint_at_reward
-	beq $t3, $t5, check_x_at_reward
-	j continue_midpoint_movement
-	
-midpoint_at_reward:
-	beq $t3, $t5, set_reached_midpoint  # If both X and Y match reward, consider midpoint reached
-	
-check_x_at_reward:
-	beq $t2, $t4, set_reached_midpoint  # If both X and Y match reward, consider midpoint reached
-	
-continue_midpoint_movement:
 	# Check if already at midpoint (both X and Y match)
 	bne $t0, $t2, not_at_midpoint
 	bne $t1, $t3, not_at_midpoint
 	
-set_reached_midpoint:
-	# If we get here, enemy is at midpoint or midpoint is at reward
+	# If we get here, enemy is at midpoint
 	li $t0, 1
 	sb $t0, enemyReachedMidpoint
 	j exit_move_enemy
@@ -496,9 +501,13 @@ update_e:
 	add $t7, $a0, $zero
 	add $t6, $a1, $zero
 	
+	# Save original position before attempting to move
+	lb $t8, enemyX
+	lb $t9, enemyY
+	
 	jal clear_enemy_space
 	
-	# Update player $a2 axis to $a0
+	# Update enemy axis to $a0
 	add $a1, $t6, $zero
 	lb $t0, ($a1)
 	add $t0, $t0, $t7
@@ -510,29 +519,60 @@ update_e:
 	lb $t2, rewardX
 	lb $t3, rewardY
 	
-	bne $t0, $t2, not_over_reward
-	bne $t1, $t3, not_over_reward
+	bne $t0, $t2, check_boundaries
+	bne $t1, $t3, check_boundaries
 	
-	# If enemy would move over reward, move it back
-	add $a1, $t6, $zero
-	lb $t0, ($a1)
-	sub $t0, $t0, $t7
-	sb $t0, ($a1)
-	j exit_update_e
+	# If enemy would move over reward, move it back to original position
+	sb $t8, enemyX
+	sb $t9, enemyY
+	j redraw_enemy
 	
-not_over_reward:
-	# Load the player coordinates for cursor positioning
+check_boundaries:
+	# Check if enemy would move out of bounds
+	lb $t0, enemyX
+	lb $t1, enemyY
+	lb $t2, boardWidth
+	lb $t3, boardHeight
+	
+	# Check X boundaries (1 to boardWidth)
+	blt $t0, 1, restore_position
+	addi $t2, $t2, 1  # Add 1 to account for right border
+	bgt $t0, $t2, restore_position
+	
+	# Check Y boundaries (2 to boardHeight+2)
+	blt $t1, 2, restore_position
+	addi $t3, $t3, 2  # Add 2 to account for score and bottom border
+	bgt $t1, $t3, restore_position
+	
+	# Check if enemy is now at player position (after moving)
+	lb $t0, enemyX
+	lb $t1, enemyY
+	lb $t2, playerX
+	lb $t3, playerY
+	
+	bne $t0, $t2, redraw_enemy
+	bne $t1, $t3, redraw_enemy
+	
+	# If enemy is at player position, trigger game over
+	j game_over
+	
+restore_position:
+	# Restore original position
+	sb $t8, enemyX
+	sb $t9, enemyY
+	
+redraw_enemy:
+	# Load the enemy coordinates for cursor positioning
 	lb $a0, enemyX
 	lb $a1, enemyY
 	
-	# Go to player new location
+	# Go to enemy new location
 	jal cursor_go_to
 	
-	# Print player
+	# Print enemy
 	lb $a0, enemy
 	jal dspl_check_and_print
 	
-exit_update_e:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
@@ -628,7 +668,6 @@ update_p:
 	lb $a0, player
 	jal dspl_check_and_print
 	
-
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
