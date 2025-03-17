@@ -39,7 +39,7 @@
 	midpointY: .byte 0
 	playerEnemyMaxSpawnDistance: .byte 7
 	enemyReachedMidpoint: .byte 0	# Boolean to check if enemy has reached the midpoint
-	interceptThreshold: .byte 3  # Distance threshold to switch between midpoint and direct pursuit
+	enemyDirection: .byte 0  # Direction for circular movement (0=right, 1=down, 2=left, 3=up)
 	
 	
 .text
@@ -234,10 +234,6 @@ calculate_midpoint:
 	
 	jr $ra
 	
-calculate_midpoint_square:
-
-	jr $ra
-
 # Calculate distance between enemy and midpoint
 enemy_midpoint_distance:
 	lb $t0, enemyX
@@ -430,9 +426,48 @@ midpoint_not_at_reward:
 	j move_enemy_to_midpoint       # Otherwise, move to midpoint
 
 move_enemy_randomly:
-	# For now, we want the enemy to stop moving when it reaches midpoint
-	# So we'll just exit without moving
+	
+	# Clear enemy's current position
+	jal clear_enemy_space
+	
+	# Get current direction and update it (0=right, 1=down, 2=left, 3=up)
+	lb $t0, enemyDirection
+	addi $t0, $t0, 1
+	li $t1, 4
+	div $t0, $t1
+	mfhi $t0  # Get remainder (0-3) to determine direction
+	sb $t0, enemyDirection
+	
+	# Move based on current direction (clockwise)
+	beq $t0, 0, move_right
+	beq $t0, 1, move_down
+	beq $t0, 2, move_left
+	beq $t0, 3, move_up
+	
+move_right:
+	li $a0, 1
+	la $a1, enemyX
+	jal update_e
 	j exit_move_enemy
+	
+move_down:
+	li $a0, 1
+	la $a1, enemyY
+	jal update_e
+	j exit_move_enemy
+	
+move_left:
+	li $a0, -1
+	la $a1, enemyX
+	jal update_e
+	j exit_move_enemy
+	
+move_up:
+	li $a0, -1
+	la $a1, enemyY
+	jal update_e
+	j exit_move_enemy
+	
 
 move_enemy_to_midpoint:
 	# Move to midpoint position
@@ -478,8 +513,6 @@ exit_move_enemy:
 	lw $ra, 4($sp)
 	addi $sp, $sp, 4
 	jr $ra
-	
-
 
 clear_enemy_space:
 	addi $sp, $sp, -4
