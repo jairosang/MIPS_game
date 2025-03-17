@@ -28,8 +28,6 @@
 	# Data 
 	playerX: .byte 0
 	playerY: .byte 0
-	prevPlayerX: .byte 0
-	prevPlayerY: .byte 0
 	rewardX: .byte 0
 	rewardY: .byte 0
 	rewardSeed: .word 300
@@ -215,14 +213,14 @@ enemy_player_distance:
 calculate_midpoint:
 	
 	# Calculate X midpoint
-	lb $t0, prevPlayerX
+	lb $t0, playerX
 	lb $t1, rewardX
 	add $t2, $t0, $t1
 	srl $t2, $t2, 1  # Divide by 2 to get midpoint
 	sb $t2, midpointX
 	
 	# Calculate Y midpoint
-	lb $t0, prevPlayerY
+	lb $t0, playerY
 	lb $t1, rewardY
 	add $t2, $t0, $t1
 	srl $t2, $t2, 1  # Divide by 2 to get midpoint
@@ -609,9 +607,7 @@ update_p:
 	
 	# Store previous player position before moving
 	lb $t0, playerX
-	sb $t0, prevPlayerX
 	lb $t0, playerY
-	sb $t0, prevPlayerY
 	
 	jal clear_player_space
 	jal update_seed
