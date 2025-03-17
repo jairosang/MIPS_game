@@ -12,7 +12,6 @@ This project is a **MIPS assembly program** that implements a simple game in the
 ✅ **Randomly repositioned rewards** after collection.  
 ✅ **Game ends** when the player reaches **100 points** or collides with a wall.  
 ✅ **Extended Version:**  
-   - 🎯 **Speed Mechanic**: Player moves continuously, only changing direction.  
    - 👾 **Enemy Mechanic**: An enemy moves with the player and attempts to block reward collection.
 
 ---
