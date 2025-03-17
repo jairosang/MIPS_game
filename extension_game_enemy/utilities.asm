@@ -82,6 +82,12 @@ player_gets_reward:
 	
 	jal increase_score
 	jal update_score_displayed
+	
+	# Check if score has reached 100
+	lb $t0, score
+	li $t1, 100
+	beq $t0, $t1, game_over
+	
 	jal INIT_REWARD
 	
 	# Reset the enemyReachedMidpoint flag to 0
