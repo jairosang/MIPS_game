@@ -46,29 +46,6 @@ This project is a **MIPS assembly program** that implements a simple game in the
 ⬇️ `S` - Move **Down**  
 ➡️ `D` - Move **Right**  
 
----
-
-## 📤 Submission Details
-📄 Submit **two files**:
-- 📝 A `.pdf` file containing the **report**.
-- 📂 A `.tar.gz` or `.zip` file containing the **MIPS assembly code**.
-
-⚠️ **Ensure the report is submitted separately** to avoid penalties.
-
----
-
-## 👤 Author
-🏫 **Lancaster University Leipzig - Digital Systems Coursework**  
-📆 **Submission Deadline:** Mon Week 20 (3PM German Time)  
-
----
-
-## ⚠️ Notes
-🚫 **AI tools (e.g., ChatGPT) are NOT permitted** for this assessment.  
-📜 Ensure compliance with **Lancaster University's academic regulations**.  
-🏆 Follow the **marking rubric** to maximize your score!
-
----
 
 🎯 **Good luck and happy coding!** 🚀
 
